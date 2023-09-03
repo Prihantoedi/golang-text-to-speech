@@ -1,7 +1,6 @@
 package main
 
 import (
-	"crypto/md5"
 	"crypto/sha256"
 	"crypto/tls"
 	"encoding/hex"
@@ -122,11 +121,6 @@ func (speech *Speech) downloadIfNotExists(fileName string, text string) error {
 
 	f.Close()
 	return nil
-}
-
-func (speech *Speech) generateHashName(name string) string {
-	hash := md5.Sum([]byte(name))
-	return fmt.Sprintf("%s_%s", speech.Language, hex.EncodeToString(hash[:]))
 }
 
 func (speech *Speech) urlResponse(dlUrl string, f *os.File) (resp *http.Response, err error) {
