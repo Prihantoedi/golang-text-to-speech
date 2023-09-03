@@ -37,7 +37,7 @@ func GenerateName(text string) string {
 	// Convert hash to string
 	hashString := hex.EncodeToString(hash[:])
 
-	return "irp-" + hashString
+	return "irp-" + hashString + ".mp3"
 }
 
 // Creates a speech file with a given name
@@ -46,7 +46,7 @@ func (speech *Speech) CreateSpeechFile(text string) (string, error) {
 
 	generateName := GenerateName(text)
 
-	f := speech.Folder + "/" + generateName + ".mp3"
+	f := speech.Folder + "/" + generateName
 	if err = speech.createFolderIfNotExists(speech.Folder); err != nil {
 		return "", err
 	}
@@ -149,15 +149,69 @@ func (speech *Speech) urlResponse(dlUrl string, f *os.File) (resp *http.Response
 
 func main() {
 
-	buildSpeech := Speech{Folder: "audio", Language: "in"}
+	handlerIndex := func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("hello"))
+	}
 
-	text := "saya sangat suka sekali"
+	// downloadAudio := func(w http.ResponseWriter, r *http.Request) {
 
-	// fmt.Println(text)
-	// fmt.Println(file)
+	// }
 
-	fileName, _ := buildSpeech.CreateSpeechFile(text)
+	http.HandleFunc("/", handlerIndex)
+	http.HandleFunc("/index", handlerIndex)
+	http.HandleFunc("/handle-text", handleText)
+	http.HandleFunc("/download/audio", downloadAudio)
 
-	buildSpeech.PlaySpeechFile(fileName)
+	fmt.Println("server started at localhost:9000")
+	http.ListenAndServe(":9000", nil)
+
+	// buildSpeech := Speech{Folder: "audio", Language: "in"}
+
+	// text := "saya sangat suka sekali"
+
+	// fileName, _ := buildSpeech.CreateSpeechFile(text)
+
+	// buildSpeech.PlaySpeechFile(fileName)
+
+}
+
+func handleText(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	speech := r.FormValue("text")
+
+	fmt.Printf(speech)
+}
+
+func downloadAudio(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	path := r.FormValue("path")
+
+	f, err := os.Open(path)
+
+	if f != nil {
+		defer f.Close()
+	}
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	contentDisposition := fmt.Sprintf("attachment; filename=%s", f.Name())
+
+	w.Header().Set("Content-Disposition", contentDisposition)
+
+	if _, err := io.Copy(w, f); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 }
